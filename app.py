@@ -89,7 +89,16 @@ def extract_info(text_list):
 # ==========================================
 st.set_page_config(page_title="OCR Scanner Surat", layout="centered")
 st.title("📄 Pemindai Surat Otomatis")
-st.write("Ambil foto dokumen, biarkan AI bekerja.")
+
+st.markdown("""
+    <div style="background-color: #f0f2f6; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+        <h4 style="margin-top: 0px;">📱 Cara Penggunaan di HP:</h4>
+        1. Klik area <b>Drag and drop file here</b> atau <b>Browse files</b> di bawah.<br>
+        2. Pilih opsi <b>Kamera</b> (Take Photo) yang muncul di layar HP kamu.<br>
+        3. Arahkan kamera secara <i>Full-Screen</i> ke dokumen, pastikan fokus dan terang.<br>
+        4. Jepret, dan AI akan langsung memprosesnya!
+    </div>
+""", unsafe_allow_html=True)
 
 @st.cache_resource
 def load_reader():
@@ -97,32 +106,27 @@ def load_reader():
 
 reader = load_reader()
 
-# Fitur Ambil Gambar dari Kamera HP
-source = st.radio("Pilih Sumber Gambar:", ["Kamera", "Upload File"])
-
-if source == "Kamera":
-    img_file = st.camera_input("Ambil foto")
-else:
-    img_file = st.file_uploader("Pilih file gambar", type=["jpg", "png", "jpeg"])
+# Cukup gunakan satu uploader ini. Di HP, ini otomatis bisa jadi tombol pemanggil Kamera Bawaan.
+img_file = st.file_uploader("📸 Scan Dokumen (Klik di sini)", type=["jpg", "png", "jpeg"])
 
 if img_file:
+    # Tampilkan preview gambar yang sudah diambil
     image = Image.open(img_file)
+    st.image(image, caption="Gambar yang akan diproses", use_column_width=True)
+    
     img_array = np.array(image)
     
-    # --- Tambahan Pre-processing ---
-    # Ubah ke Grayscale dan naikkan kontras
+    # --- Pre-processing Gambar agar lebih mudah dibaca OCR ---
     gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
-    # Upscaling jika gambar terlalu kecil
-    resized = cv2.resize(gray, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
     
-    with st.spinner('Sedang memproses teks...'):
-        result = reader.readtext(resized, detail=0, paragraph=True) # Tambah paragraph=True
+    with st.spinner('Sedang memproses teks dokumen...'):
+        # OCR Process (tambahkan paragraph=True agar baca kalimat lebih baik)
+        result = reader.readtext(gray, detail=0, paragraph=True)
         
         if result:
             info = extract_info(result)
             
             st.subheader("Konfirmasi Data")
-            # User bisa edit jika ada yang salah sebelum simpan
             col1, col2 = st.columns(2)
             with col1:
                 nomor = st.text_input("Nomor Surat", info["Nomor"])
@@ -144,4 +148,4 @@ if img_file:
                     st.success("Data berhasil masuk ke Google Sheets!")
                     st.balloons()
         else:
-            st.warning("Teks tidak terdeteksi. Coba ambil foto lebih dekat dan terang.")
+            st.warning("Teks tidak terdeteksi. Silakan coba foto ulang.")
