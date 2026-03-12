@@ -27,25 +27,27 @@ st.markdown("""
 # ==========================================
 def save_to_google_sheets(info_dict):
     try:
-        # Ambil kredensial dari Streamlit Secrets
-        creds_dict = st.secrets["gcp_service_account"]
+        # 1. Ambil kredensial dari Streamlit Secrets dan jadikan dictionary
+        creds_dict = dict(st.secrets["gcp_service_account"])
         
+        # 2. PERBAIKAN KRUSIAL: Ganti teks literal "\n" menjadi karakter enter sesungguhnya
+        creds_dict["private_key"] = creds_dict["private_key"].replace('\\n', '\n')
+        
+        # 3. Lanjut autentikasi seperti biasa
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        
-        # Menggunakan from_json_keyfile_dict (BUKAN file_name)
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client = gspread.authorize(creds)
         
-        # Nama file Google Sheets kamu
+        # Pastikan nama file sesuai
         sheet = client.open("ResultOcrLive").sheet1
         
-        # Ambil data untuk nomor urut
         all_data = sheet.get_all_records()
         no_urut = len(all_data) + 1
         
         row = [no_urut, info_dict["Nomor"], info_dict["Tanggal"], info_dict["Perihal"], info_dict["Tujuan"]]
         sheet.append_row(row)
         return True
+        
     except Exception as e:
         st.error(f"Gagal simpan ke Sheets: {e}")
         return False
