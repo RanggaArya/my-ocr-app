@@ -12,15 +12,19 @@ from PIL import Image
 # ==========================================
 def save_to_google_sheets(info_dict):
     try:
+        # Ambil kredensial dari Streamlit Secrets
+        creds_dict = st.secrets["gcp_service_account"]
+        
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        # Membaca key.json (Pastikan file ini ada di folder yang sama)
-        creds = ServiceAccountCredentials.from_json_keyfile_name("key.json", scope)
+        
+        # Menggunakan from_json_keyfile_dict (BUKAN file_name)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client = gspread.authorize(creds)
         
-        # Ganti dengan NAMA file Google Sheets kamu
+        # Nama file Google Sheets kamu
         sheet = client.open("ResultOcrLive").sheet1
         
-        # Ambil semua record untuk menghitung nomor urut
+        # Ambil data untuk nomor urut
         all_data = sheet.get_all_records()
         no_urut = len(all_data) + 1
         
