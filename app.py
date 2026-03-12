@@ -7,6 +7,21 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from PIL import Image
 
+st.markdown("""
+    <style>
+    /* Memperbesar box kamera */
+    div[data-testid="stCameraInput"] {
+        width: 100% !important;
+    }
+    /* Memperbesar preview gambar agar memenuhi layar */
+    div[data-testid="stCameraInput"] img {
+        filter: contrast(1.1); /* Sedikit bantuan kontras untuk OCR */
+        width: 100% !important;
+        height: auto !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 # ==========================================
 # 1. KONEKSI GOOGLE SHEETS
 # ==========================================
@@ -81,15 +96,25 @@ def load_reader():
 reader = load_reader()
 
 # Fitur Ambil Gambar dari Kamera HP
-img_file = st.camera_input("Klik tombol di bawah untuk ambil foto")
+source = st.radio("Pilih Sumber Gambar:", ["Kamera", "Upload File"])
+
+if source == "Kamera":
+    img_file = st.camera_input("Ambil foto")
+else:
+    img_file = st.file_uploader("Pilih file gambar", type=["jpg", "png", "jpeg"])
 
 if img_file:
     image = Image.open(img_file)
     img_array = np.array(image)
     
+    # --- Tambahan Pre-processing ---
+    # Ubah ke Grayscale dan naikkan kontras
+    gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
+    # Upscaling jika gambar terlalu kecil
+    resized = cv2.resize(gray, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
+    
     with st.spinner('Sedang memproses teks...'):
-        # OCR Process
-        result = reader.readtext(img_array, detail=0)
+        result = reader.readtext(resized, detail=0, paragraph=True) # Tambah paragraph=True
         
         if result:
             info = extract_info(result)
